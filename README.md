@@ -99,15 +99,3 @@ install.packages(c("ggplot2", "dplyr", "factoextra", "pls"))
 4. Click **Knit** to generate the HTML report.
 
 ---
-
-# **STEP 6 — Commit the README**
-
-In terminal:
-
-```
-git add README.md
-git commit -m "Add polished README"
-git push
-```
-
----
