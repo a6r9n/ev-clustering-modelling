@@ -1,0 +1,129 @@
+---
+title: "EV Clustering and Price Modelling"
+author: "Afrin F Razvi"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    theme: cosmo
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+source("../R/data_utils.R")
+source("../R/clustering.R")
+source("../R/modelling.R")
+
+library(ggplot2)
+library(dplyr)
+library(factoextra)
+library(pls)
+
+```
+
+# 1. Dataset overview
+
+```{r data-overview}
+ev <- load_ev_data()
+dim(ev)
+head(ev)
+```
+
+The dataset contains one row per electric vehicle model and several technical/price attributes (battery size, performance, efficiency and price).
+
+---
+
+# 2. Clustering and visualisation
+
+## 2.1 Distance matrix (first 30 vehicles)
+
+```{r dist-30, fig.height=6}
+ev_scaled <- scale_ev_numeric(ev)
+d30 <- compute_ev_distance(ev_scaled, n_sample = 30)
+plot_ev_distance(d30)
+```
+
+This distance heatmap shows how similar or dissimilar the first 30 EVs are based on their scaled numeric attributes. Lighter tiles indicate cars with similar specifications; darker tiles indicate large differences.
+
+## 2.2 Choosing the number of clusters
+
+```{r choose-k, fig.height=5}
+find_optimal_k(ev_scaled, k_max = 8)
+```
+
+The silhouette plot helps select a reasonable number of clusters by maximising average silhouette width.
+
+## 2.3 K-means clustering (k = 3)
+
+```{r kmeans-3, fig.height=6}
+km3 <- run_kmeans_ev(ev_scaled, k = 3)
+plot_kmeans_clusters(ev_scaled, km3)
+```
+
+Each point represents an EV. Colours indicate cluster membership; larger points show the cluster centroids. Vehicles near the same centroid share broadly similar technical and pricing profiles.
+
+---
+
+# 3. Modelling and prediction
+
+In this section I build three models to predict **Price** from selected EV attributes and compare their performance.
+
+## 3.1 Prepare data and train/test split
+
+```{r prep-split}
+ev_mod <- prepare_ev_modelling_data(ev)
+dim(ev_mod)
+head(ev_mod)
+
+splits <- split_train_test(ev_mod, train_frac = 0.8, seed = 42)
+train  <- splits$train
+test   <- splits$test
+
+nrow(train); nrow(test)
+```
+
+## 3.2 Fit models
+
+```{r fit-models}
+mlr_model <- fit_mlr(train)
+pcr_model <- fit_pcr_model(train, ncomp = 3)
+pls_model <- fit_pls_model(train, ncomp = 3)
+
+summary(mlr_model)
+```
+
+## 3.3 Generate predictions
+
+```{r predictions}
+y_test <- test$Price
+
+pred_mlr <- predict_mlr(mlr_model, test)
+pred_pcr <- predict_pcr_model(pcr_model, test, ncomp = 3)
+pred_pls <- predict_pls_model(pls_model, test, ncomp = 3)
+```
+
+## 3.4 Evaluate performance
+
+```{r performance}
+perf_mlr <- summarise_model_performance(y_test, pred_mlr, "MLR")
+perf_pcr <- summarise_model_performance(y_test, pred_pcr, "PCR")
+perf_pls <- summarise_model_performance(y_test, pred_pls, "PLS")
+
+perf_all <- rbind(perf_mlr, perf_pcr, perf_pls)
+perf_all
+```
+
+```{r perf-plot, fig.height=4}
+ggplot(perf_all, aes(x = model, y = rmse)) +
+  geom_col() +
+  labs(
+    title = "RMSE by model",
+    x = "Model",
+    y = "RMSE (Price units)"
+  )
+```
+
+Lower RMSE and higher correlation indicate better predictive performance.
+
+---
