@@ -1,8 +1,8 @@
 # EV Clustering and Price Modelling
 
-*A complete data science project using R: clustering analysis, visualisation, and predictive modelling for electric vehicle pricing.*
+*End-to-end R project for analysing an anonymised EV dataset: distance matrices, optimal-k selection, k-means clustering, dimensionality reduction, and predictive modelling (MLR, PCR, PLS) with RMSE benchmarking. Fully reproducible with modular functions and an HTML report.*
 
-### Live Report: [fcvgbhj](link.html)
+### Live Report: [Click Here](https://a6r9n.github.io/ev-clustering-modelling/ev_clustering_modelling.html)
 
 ---
 
